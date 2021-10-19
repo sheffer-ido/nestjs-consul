@@ -27,9 +27,9 @@ export class ConsulService<T> {
 			return data;
 		} catch (e) {
 			if (k.required) {
-				throw new Error(`Не найден ключ ${String(k.key)}`)
+				throw new Error(`Key not found ${String(k.key)}`)
 			}
-			Logger.warn(`Не найден ключ ${String(k.key)}`);
+			Logger.warn(`Key not found ${String(k.key)}`);
 			return null;
 		}
 	}
@@ -89,6 +89,54 @@ export class ConsulService<T> {
 			Logger.error(e);
 		}
 	}
+
+	public async getKVBundles(key: string) {
+		let data: { [k: string]: any } = {};
+		data = await this.get(key);
+		console.log('bindle initial');
+		console.log(data);
+		const rr = await this.getKVRecursive(data);
+		console.log('bindle final');
+		console.log(rr);
+	  }
+
+	public async getKVRecursive(bundle, counter = 0) {
+		const b = Object['values'](bundle)[counter];
+		const dd = await this.get(b.toString());
+		bundle[Object.keys(bundle)[counter]] = JSON.stringify(dd);
+		counter++;
+		if (counter != Object['values'](bundle).length) {
+		  return this.getKVRecursive(bundle, counter);
+		}
+		return bundle;
+	  }
+
+	// public async  getKVOverRide(key: string){
+    //     const data = await this.get(key);
+    //     // if(typeof data.route === "undefined"||typeof data.over  === "undefined"){
+    //     //     console.log("has no route or over element")
+    //       const org = await this.get(Object.values(data));
+    //       var mrg = await this.MergeRecursive(org,data.OBJvalues(over))
+    //       return mrg;
+
+    // }
+
+	async MergeRecursive(original, changes) {
+		for (const p in changes) {
+		  try {
+			// Property in destination object set; update its value.
+			if (changes[p].constructor == Object) {
+			  original[p] = await this.MergeRecursive(original[p], changes[p]);
+			} else {
+			  original[p] = changes[p];
+			}
+		  } catch (e) {
+			// Property in destination object not set; create it and set its value.
+			original[p] = changes[p];
+		  }
+		}
+		return original;
+	  }
 
 	public async delete(key: string): Promise<boolean> {
 		try {
